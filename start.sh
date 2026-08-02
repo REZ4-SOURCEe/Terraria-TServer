@@ -59,10 +59,12 @@ fi
 
 # Si le monde n'existe pas encore, on demande une autocreation avec la difficulté
 if [ ! -f "${WORLD_DIR}/${WORLD_FILENAME}" ]; then
+  echo "Creating new world with size ${WORLD_SIZE} and difficulty ${WORLD_DIFFICULTY}..."
   set -- "$@" -autocreate "${WORLD_SIZE}" -difficulty "${WORLD_DIFFICULTY}"
 fi
 
-# Sécurité : si quelqu'un a mis -world/-configpath/-logpath dans Railway, on les supprime (doublons => crash)
+# ========== اصلاح مهم اینجاست ==========
+# فقط -world, -configpath, -logpath رو پاک کن (بقیه رو نگه دار)
 SANITIZED_ARGS=""
 skip_next=0
 for a in "$@"; do
@@ -71,7 +73,7 @@ for a in "$@"; do
     continue
   fi
   case "$a" in
-    -world|-configpath|-logpath|-autocreate|-difficulty)
+    -world|-configpath|-logpath)  # ← فقط اینا رو پاک کن
       skip_next=1
       continue
       ;;
@@ -80,6 +82,9 @@ for a in "$@"; do
       ;;
   esac
 done
+# =====================================
+
+echo "Final args: $SANITIZED_ARGS"
 
 # Lancer exactement comme l'image le prévoit: WORKDIR /tshock + bootstrap.sh
 cd /tshock
