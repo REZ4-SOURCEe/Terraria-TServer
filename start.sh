@@ -41,6 +41,7 @@ fi
 
 # Evite le bug "[: =: unexpected operator" si WORLD_FILENAME est vide
 if [ -z "${WORLD_FILENAME:-}" ]; then
+  # si un .wld existe déjà, on prend le premier
   first_wld="$(ls -1 "${WORLD_DIR}"/*.wld 2>/dev/null | head -n 1 || true)"
   if [ -n "$first_wld" ]; then
     WORLD_FILENAME="$(basename "$first_wld")"
@@ -51,14 +52,14 @@ if [ -z "${WORLD_FILENAME:-}" ]; then
   fi
 fi
 
-# ========== اضافه کن ==========
+# ========== تنظیمات مپ ==========
 : "${WORLD_SIZE:=2}"  # 1=Small, 2=Medium, 3=Large
 : "${WORLD_DIFFICULTY:=2}"  # 0=Normal, 1=Expert, 2=Master, 3=Journey
-# =============================
+# ===============================
 
-# Si le monde n'existe pas encore, on demande une autocreation
+# Si le monde n'existe pas encore, on demande une autocreation avec la difficulté
 if [ ! -f "${WORLD_DIR}/${WORLD_FILENAME}" ]; then
-  set -- "$@" -autocreate "${WORLD_SIZE}" -difficulty "${WORLD_DIFFICULTY}"  # ← اینجا -difficulty اضافه شد
+  set -- "$@" -autocreate "${WORLD_SIZE}" -difficulty "${WORLD_DIFFICULTY}"
 fi
 
 # Sécurité : si quelqu'un a mis -world/-configpath/-logpath dans Railway, on les supprime (doublons => crash)
@@ -70,7 +71,7 @@ for a in "$@"; do
     continue
   fi
   case "$a" in
-    -world|-configpath|-logpath|-autocreate|-difficulty)  # ← -difficulty به این خط اضافه شد
+    -world|-configpath|-logpath|-autocreate|-difficulty)
       skip_next=1
       continue
       ;;
