@@ -4,7 +4,7 @@ set -eu
 # Volume unique Railway
 DATA_ROOT="${RAILWAY_VOLUME_MOUNT_PATH:-/data}"
 
-# Chemins attendus par l'image ryshe/terraria
+# Chemins attendus par l'image ryshe/terraria (voir README / Dockerfile)
 WORLD_DIR="/root/.local/share/Terraria/Worlds"
 LOG_DIR="/tshock/logs"
 PLUGINS_DIR="/plugins"
@@ -34,17 +34,12 @@ link_dir "$WORLD_DIR" "$P_WORLD"
 link_dir "$LOG_DIR" "$P_LOGS"
 link_dir "$PLUGINS_DIR" "$P_PLUGINS"
 
-# ========== تنظیمات ==========
-WORLD_DIFFICULTY="${WORLD_DIFFICULTY:-2}"
-WORLD_SIZE="${WORLD_SIZE:-2}"
-# ============================
-
 # Evite l'erreur jq du bootstrap quand config.json n'existe pas
 if [ ! -f "${WORLD_DIR}/config.json" ]; then
   printf '%s\n' '{}' > "${WORLD_DIR}/config.json"
 fi
 
-# تنظیم WORLD_FILENAME
+# Evite le bug "[: =: unexpected operator" si WORLD_FILENAME est vide
 if [ -z "${WORLD_FILENAME:-}" ]; then
   first_wld="$(ls -1 "${WORLD_DIR}"/*.wld 2>/dev/null | head -n 1 || true)"
   if [ -n "$first_wld" ]; then
@@ -56,15 +51,17 @@ if [ -z "${WORLD_FILENAME:-}" ]; then
   fi
 fi
 
-# ========== اصلاح اصلی اینجاست ==========
-# اگر فایل وجود نداشت، حتماً -autocreate رو اضافه کن
-if [ ! -f "${WORLD_DIR}/${WORLD_FILENAME}" ]; then
-  echo "World file not found, creating new world with Master Mode..."
-  set -- "$@" -autocreate "${WORLD_SIZE}" -difficulty "${WORLD_DIFFICULTY}"
-fi
-# =======================================
+# ========== اضافه کن ==========
+: "${WORLD_SIZE:=2}"  # 1=Small, 2=Medium, 3=Large
+: "${WORLD_DIFFICULTY:=2}"  # 0=Normal, 1=Expert, 2=Master, 3=Journey
+# =============================
 
-# پاکسازی آرگومان‌ها
+# Si le monde n'existe pas encore, on demande une autocreation
+if [ ! -f "${WORLD_DIR}/${WORLD_FILENAME}" ]; then
+  set -- "$@" -autocreate "${WORLD_SIZE}" -difficulty "${WORLD_DIFFICULTY}"  # ← اینجا -difficulty اضافه شد
+fi
+
+# Sécurité : si quelqu'un a mis -world/-configpath/-logpath dans Railway, on les supprime (doublons => crash)
 SANITIZED_ARGS=""
 skip_next=0
 for a in "$@"; do
@@ -73,7 +70,7 @@ for a in "$@"; do
     continue
   fi
   case "$a" in
-    -world|-configpath|-logpath|-autocreate|-difficulty)
+    -world|-configpath|-logpath|-autocreate|-difficulty)  # ← -difficulty به این خط اضافه شد
       skip_next=1
       continue
       ;;
@@ -83,7 +80,7 @@ for a in "$@"; do
   esac
 done
 
-echo "Starting Terraria with args: $SANITIZED_ARGS"
+# Lancer exactement comme l'image le prévoit: WORKDIR /tshock + bootstrap.sh
 cd /tshock
 # shellcheck disable=SC2086
 exec /bin/sh bootstrap.sh $SANITIZED_ARGS
