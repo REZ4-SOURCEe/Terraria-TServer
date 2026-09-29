@@ -1,4 +1,4 @@
-FROM ghcr.io/pryaxis/tshock:v6.2.1
+FROM ghcr.io/pryaxis/tshock:stable
 
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
