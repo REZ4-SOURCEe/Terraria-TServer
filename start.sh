@@ -30,10 +30,6 @@ link_dir "$WORLD_DIR" "$P_WORLD"
 link_dir "$LOG_DIR" "$P_LOGS"
 link_dir "$PLUGINS_DIR" "$P_PLUGINS"
 
-if [ ! -f "${WORLD_DIR}/config.json" ]; then
-  printf '%s\n' '{}' > "${WORLD_DIR}/config.json"
-fi
-
 if [ -z "${WORLD_FILENAME:-}" ]; then
   first_wld="$(ls -1 "${WORLD_DIR}"/*.wld 2>/dev/null | head -n 1 || true)"
 
@@ -49,33 +45,18 @@ fi
 : "${WORLD_SIZE:=2}"
 : "${WORLD_DIFFICULTY:=2}"
 
+ARGS=""
+
 if [ ! -f "${WORLD_DIR}/${WORLD_FILENAME}" ]; then
   echo "Creating new world with size ${WORLD_SIZE} and difficulty ${WORLD_DIFFICULTY}..."
-  set -- "$@" -autocreate "${WORLD_SIZE}" -difficulty "${WORLD_DIFFICULTY}"
+  ARGS="$ARGS -autocreate ${WORLD_SIZE} -difficulty ${WORLD_DIFFICULTY}"
 fi
 
-SANITIZED_ARGS=""
-skip_next=0
+echo "Starting TShock..."
 
-for a in "$@"; do
-  if [ "$skip_next" -eq 1 ]; then
-    skip_next=0
-    continue
-  fi
-
-  case "$a" in
-    -world|-configpath|-logpath)
-      skip_next=1
-      continue
-      ;;
-    *)
-      SANITIZED_ARGS="${SANITIZED_ARGS} $(printf "%s" "$a")"
-      ;;
-  esac
-done
-
-echo "Final args: $SANITIZED_ARGS"
-
-cd /tshock
-
-exec dotnet TerrariaServer.dll $SANITIZED_ARGS
+exec /server/TShock.Server \
+  -configpath /tshock \
+  -logpath /tshock/logs \
+  -worldselectpath /root/.local/share/Terraria/Worlds \
+  -additionalplugins /plugins \
+  $ARGS
